@@ -23,7 +23,7 @@ func t1() {
 }
 
 func t2() {
-	f, err := g.Open("gylog测试", 20, 25, 0)
+	f, err := g.Open("gylog测试", 20, 25, 2)
 	if err != nil {
 		fmt.Println(err)
 	}
