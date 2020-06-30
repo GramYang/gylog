@@ -10,14 +10,14 @@ import (
 )
 
 type LogFile struct {
-	mu sync.Mutex
-	file *os.File
-	layout string //time时间格式
+	mu       sync.Mutex
+	file     *os.File
+	layout   string //time时间格式
 	baseName string //log文件基本名称
-	size int64 //标记当前log文件写入的字节数，用于和maxSize对比
-	seconds int64 //清理多余log文件的时间间隔
-	maxSize int64 //log文件的最大尺寸，超过了就rotate
-	maxCount int64 //可以保留的最大log文件数
+	size     int64  //标记当前log文件写入的字节数，用于和maxSize对比
+	seconds  int64  //清理多余log文件的时间间隔
+	maxSize  int64  //log文件的最大尺寸，超过了就rotate
+	maxCount int64  //可以保留的最大log文件数
 }
 
 func Open(baseName string, seconds, maxSize, maxCount int64) (io.WriteCloser, error) {
@@ -106,11 +106,6 @@ func (lf *LogFile) rotate() error {
 	if err != nil {
 		return err
 	}
-	//删除可能存在的baseName文件，就是上一个链接文件
-	existWarning(os.Remove(lf.baseName))
-	_, f := filepath.Split(name)
-	//新创建一个链接文件，名称为baseName
-	ErrWarning(os.Symlink(f, lf.baseName))
 	//删除其他的非当前log文件
 	go lf.purge()
 	return nil
@@ -123,16 +118,14 @@ func (lf *LogFile) cycle() {
 	}
 	ns := lf.seconds * 1e9
 	for {
-		now := time.Now().UnixNano()
-		next := (now/ns)*ns + ns
-		<-time.After(time.Duration(next - now))
+		<-time.After(time.Duration(ns))
 		lf.mu.Lock()
 		if lf.file == nil {
 			lf.mu.Unlock()
 			return
 		} else {
-			ErrWarning(lf.rotate())
 			lf.mu.Unlock()
+			ErrWarning(lf.rotate())
 		}
 	}
 }

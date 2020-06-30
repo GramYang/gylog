@@ -7,20 +7,21 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 const (
-	Ldate=log.Ldate
-	Ltime=log.Ltime
-	Lmicroseconds=log.Lmicroseconds
-	Llongfile=log.Llongfile
-	Lshortfile=log.Lshortfile
-	LUTC=log.LUTC
-	LstdFlags=log.LstdFlags
+	Ldate         = log.Ldate
+	Ltime         = log.Ltime
+	Lmicroseconds = log.Lmicroseconds
+	Llongfile     = log.Llongfile
+	Lshortfile    = log.Lshortfile
+	LUTC          = log.LUTC
+	LstdFlags     = log.LstdFlags
 )
 
 const (
-	LevelDebug=(iota+1)*100
+	LevelDebug = (iota + 1) * 100
 	LevelInfo
 	LevelNotice
 	LevelWarning
@@ -31,21 +32,21 @@ const (
 )
 
 var (
-	levels=map[int]string{
-		LevelDebug: "DEBUG",
-		LevelInfo: "INFO",
-		LevelNotice: "NOTICE",
-		LevelWarning:"WARNING",
-		LevelError:"ERROR",
+	levels = map[int]string{
+		LevelDebug:    "DEBUG",
+		LevelInfo:     "INFO",
+		LevelNotice:   "NOTICE",
+		LevelWarning:  "WARNING",
+		LevelError:    "ERROR",
 		LevelCritical: "CRITICAL",
-		LevelPanic: "PANIC",
-		LevelFatal:"FATAL",
+		LevelPanic:    "PANIC",
+		LevelFatal:    "FATAL",
 	}
 )
 
 const (
-	namePrefix="LEVEL"
-	levelDepth=4
+	namePrefix = "LEVEL"
+	levelDepth = 4
 )
 
 func AddBracket() {
@@ -84,19 +85,20 @@ func NameLevel(name string) int {
 	return level
 }
 
-type Logger struct{
-	level int
+type Logger struct {
+	mux    sync.Mutex
+	level  int
 	logger *log.Logger
 }
 
-func New(out io.Writer,prefix string, flag, level int)*Logger{
+func New(out io.Writer, prefix string, flag, level int) *Logger {
 	return &Logger{
-		level:level,
-		logger:log.New(out,prefix,flag),
+		level:  level,
+		logger: log.New(out, prefix, flag),
 	}
 }
 
-func(l *Logger)Flags() int{
+func (l *Logger) Flags() int {
 	return l.logger.Flags()
 }
 
@@ -126,6 +128,8 @@ func (l *Logger) SetLevel(level int) {
 }
 
 func (l *Logger) output(level, calldepth int, s string) error {
+	l.mux.Lock()
+	defer l.mux.Unlock()
 	if l == std {
 		calldepth++
 	}
@@ -161,151 +165,151 @@ func (l *Logger) Outputln(level, calldepth int, a ...interface{}) error {
 }
 
 func (l *Logger) ErrDebug(err error) {
-	_=l.Err(LevelDebug, levelDepth, err)
+	_ = l.Err(LevelDebug, levelDepth, err)
 }
 
 func (l *Logger) ErrNotice(err error) {
-	_=l.Err(LevelNotice, levelDepth, err)
+	_ = l.Err(LevelNotice, levelDepth, err)
 }
 
 func (l *Logger) ErrInfo(err error) {
-	_=l.Err(LevelInfo, levelDepth, err)
+	_ = l.Err(LevelInfo, levelDepth, err)
 }
 
 func (l *Logger) ErrWarning(err error) {
-	_=l.Err(LevelWarning, levelDepth, err)
+	_ = l.Err(LevelWarning, levelDepth, err)
 }
 
 func (l *Logger) ErrError(err error) {
-	_=l.Err(LevelError, levelDepth, err)
+	_ = l.Err(LevelError, levelDepth, err)
 }
 
 func (l *Logger) ErrCritical(err error) {
-	_=l.Err(LevelCritical, levelDepth, err)
+	_ = l.Err(LevelCritical, levelDepth, err)
 }
 
 func (l *Logger) ErrPanic(err error) {
 	if err != nil {
-		_=l.Err(LevelPanic, levelDepth, err)
+		_ = l.Err(LevelPanic, levelDepth, err)
 		panic(err)
 	}
 }
 
 func (l *Logger) ErrFatal(err error) {
 	if err != nil {
-		_=l.Err(LevelFatal, levelDepth, err)
+		_ = l.Err(LevelFatal, levelDepth, err)
 		os.Exit(1)
 	}
 }
 
 func (l *Logger) Debug(a ...interface{}) {
-	_=l.Output(LevelDebug, levelDepth, a...)
+	_ = l.Output(LevelDebug, levelDepth, a...)
 }
 
 func (l *Logger) Notice(a ...interface{}) {
-	_=l.Output(LevelNotice, levelDepth, a...)
+	_ = l.Output(LevelNotice, levelDepth, a...)
 }
 
 func (l *Logger) Info(a ...interface{}) {
-	_=l.Output(LevelInfo, levelDepth, a...)
+	_ = l.Output(LevelInfo, levelDepth, a...)
 }
 
 func (l *Logger) Warning(a ...interface{}) {
-	_=l.Output(LevelWarning, levelDepth, a...)
+	_ = l.Output(LevelWarning, levelDepth, a...)
 }
 
 func (l *Logger) Error(a ...interface{}) {
-	_=l.Output(LevelError, levelDepth, a...)
+	_ = l.Output(LevelError, levelDepth, a...)
 }
 
 func (l *Logger) Critical(a ...interface{}) {
-	_=l.Output(LevelCritical, levelDepth, a...)
+	_ = l.Output(LevelCritical, levelDepth, a...)
 }
 
 func (l *Logger) Panic(a ...interface{}) {
 	s := fmt.Sprint(a...)
 	if LevelPanic >= l.level {
-		_=l.output(LevelPanic, levelDepth-1, s)
+		_ = l.output(LevelPanic, levelDepth-1, s)
 	}
 	panic(s)
 }
 
 func (l *Logger) Fatal(a ...interface{}) {
-	_=l.Output(LevelFatal, levelDepth, a...)
+	_ = l.Output(LevelFatal, levelDepth, a...)
 	os.Exit(1)
 }
 
 func (l *Logger) Debugf(format string, a ...interface{}) {
-	_=l.Outputf(LevelDebug, levelDepth, format, a...)
+	_ = l.Outputf(LevelDebug, levelDepth, format, a...)
 }
 
 func (l *Logger) Noticef(format string, a ...interface{}) {
-	_=l.Outputf(LevelNotice, levelDepth, format, a...)
+	_ = l.Outputf(LevelNotice, levelDepth, format, a...)
 }
 
 func (l *Logger) Infof(format string, a ...interface{}) {
-	_=l.Outputf(LevelInfo, levelDepth, format, a...)
+	_ = l.Outputf(LevelInfo, levelDepth, format, a...)
 }
 
 func (l *Logger) Warningf(format string, a ...interface{}) {
-	_=l.Outputf(LevelWarning, levelDepth, format, a...)
+	_ = l.Outputf(LevelWarning, levelDepth, format, a...)
 }
 
 func (l *Logger) Errorf(format string, a ...interface{}) {
-	_=l.Outputf(LevelError, levelDepth, format, a...)
+	_ = l.Outputf(LevelError, levelDepth, format, a...)
 }
 
 func (l *Logger) Criticalf(format string, a ...interface{}) {
-	_=l.Outputf(LevelCritical, levelDepth, format, a...)
+	_ = l.Outputf(LevelCritical, levelDepth, format, a...)
 }
 
 func (l *Logger) Panicf(format string, a ...interface{}) {
 	s := fmt.Sprintf(format, a...)
 	if LevelPanic >= l.level {
-		_=l.output(LevelPanic, levelDepth-1, s)
+		_ = l.output(LevelPanic, levelDepth-1, s)
 	}
 	panic(s)
 }
 
 func (l *Logger) Fatalf(format string, a ...interface{}) {
-	_=l.Outputf(LevelFatal, levelDepth, format, a...)
+	_ = l.Outputf(LevelFatal, levelDepth, format, a...)
 	os.Exit(1)
 }
 
 func (l *Logger) Debugln(a ...interface{}) {
-	_=l.Outputln(LevelDebug, levelDepth, a...)
+	_ = l.Outputln(LevelDebug, levelDepth, a...)
 }
 
 func (l *Logger) Infoln(a ...interface{}) {
-	_=l.Outputln(LevelInfo, levelDepth, a...)
+	_ = l.Outputln(LevelInfo, levelDepth, a...)
 }
 
 func (l *Logger) Noticeln(a ...interface{}) {
-	_=l.Outputln(LevelNotice, levelDepth, a...)
+	_ = l.Outputln(LevelNotice, levelDepth, a...)
 }
 
 func (l *Logger) Warningln(a ...interface{}) {
-	_=l.Outputln(LevelWarning, levelDepth, a...)
+	_ = l.Outputln(LevelWarning, levelDepth, a...)
 }
 
 func (l *Logger) Errorln(a ...interface{}) {
-	_=l.Outputln(LevelError, levelDepth, a...)
+	_ = l.Outputln(LevelError, levelDepth, a...)
 }
 
 func (l *Logger) Criticalln(a ...interface{}) {
-	_=l.Outputln(LevelCritical, levelDepth, a...)
+	_ = l.Outputln(LevelCritical, levelDepth, a...)
 }
 
 func (l *Logger) Panicln(a ...interface{}) {
 	s := fmt.Sprintln(a...)
 	if LevelPanic >= l.level {
-		_=l.output(LevelPanic, levelDepth-1, s)
+		_ = l.output(LevelPanic, levelDepth-1, s)
 	}
 	panic(s)
 }
 
 func (l *Logger) Fatalln(a ...interface{}) {
-	_=l.Outputln(LevelFatal, levelDepth, a...)
+	_ = l.Outputln(LevelFatal, levelDepth, a...)
 	os.Exit(1)
 }
 
