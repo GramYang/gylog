@@ -46,7 +46,7 @@ var (
 
 const (
 	namePrefix = "LEVEL"
-	levelDepth = 4
+	levelDepth = 2
 )
 
 func AddBracket() {
